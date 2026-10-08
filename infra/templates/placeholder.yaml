@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Empty placeholder used only to create a stack name for CloudFormation Git sync.
+  Git sync (API/CLI) updates existing stacks; it then replaces this template with the
+  one referenced by the deployment file, so every real resource is created by Git sync.
+Resources:
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

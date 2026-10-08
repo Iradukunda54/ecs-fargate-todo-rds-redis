@@ -15,6 +15,7 @@ app/                         Application code (separate from infrastructure)
   docker-compose.yml           local stack: PostgreSQL + Redis + app
 infra/                       Infrastructure as code (CloudFormation)
   templates/bootstrap-gitsync-role.yaml   one-time: IAM role used by Git sync
+  templates/placeholder.yaml              empty stack Git sync updates into the real stack
   templates/foundation.yaml               VPC, subnets, SGs, VPC endpoints, ECR, RDS, RDS Proxy, Redis, OIDC role
   templates/service.yaml                  ALB, ECS service + auto scaling, CodeDeploy, CodePipeline, EventBridge
   deployments/foundation.yaml             Git sync deployment file -> stack todo-ecs-foundation
@@ -157,6 +158,12 @@ aws cloudformation deploy --region eu-west-1 --stack-name todo-ecs-gitsync-boots
 
 ### 1. Foundation stack through Git sync
 
+Git sync configured through the API/CLI only **updates** an existing stack. First create an empty placeholder stack with the right name ([infra/templates/placeholder.yaml](infra/templates/placeholder.yaml) contains only a no-op `WaitConditionHandle`). Git sync then replaces it with the real template, so every real resource is created by Git sync:
+
+```bash
+aws cloudformation create-stack --region eu-west-1 --stack-name todo-ecs-foundation   --template-body file://infra/templates/placeholder.yaml
+```
+
 Link the repo, then create the sync configuration:
 
 ```bash
@@ -182,6 +189,7 @@ gh workflow run app-build-push.yml --ref main
 The ECS service needs an image in ECR before it can start, which is why this stack comes after the first push.
 
 ```bash
+aws cloudformation create-stack --region eu-west-1 --stack-name todo-ecs-service \n  --template-body file://infra/templates/placeholder.yaml
 aws codeconnections create-sync-configuration --region eu-west-1 --sync-type CFN_STACK_SYNC \
   --resource-name todo-ecs-service --branch main --config-file infra/deployments/service.yaml \
   --repository-link-id <repository-link-id> --role-arn <GitSyncRoleArn>
