@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Edit task')}"></head>
+<body>
+<header><h1>Edit task</h1><a class="button" th:href="@{/}">Back</a></header>
+<main>
+  <form class="card" th:action="@{/tasks/{id}(id=${task.id()})}" th:object="${form}" method="post">
+    <div th:replace="~{fragments :: source(${read})}"></div>
+    <label>Title
+      <input type="text" th:field="*{title}" maxlength="200" required>
+      <span class="error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></span>
+    </label>
+    <label>Description
+      <textarea th:field="*{description}" maxlength="1000"></textarea>
+      <span class="error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></span>
+    </label>
+    <label style="display:flex; gap:8px; align-items:center;">
+      <input type="checkbox" th:field="*{completed}"> Completed
+    </label>
+    <button type="submit" class="primary">Save</button>
+    <a class="button" th:href="@{/}">Cancel</a>
+  </form>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

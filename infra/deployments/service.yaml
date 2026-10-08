@@ -1,0 +1,15 @@
+# CloudFormation Git sync deployment file for the "todo-ecs-service" stack.
+# Create this stack only after the first image is in ECR (see README, "Deployment order").
+template-file-path: infra/templates/service.yaml
+parameters:
+  FoundationStackName: todo-ecs-foundation
+  ImageTag: latest
+  TaskCpu: "512"
+  TaskMemory: "1024"
+  CpuTargetPercent: "60"
+tags:
+  Project: todo-ecs
+  Environment: dev
+  Owner: Iradukunda54
+  ManagedBy: cloudformation-git-sync
+  Stack: service

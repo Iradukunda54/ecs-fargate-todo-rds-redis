@@ -1,0 +1,38 @@
+# Local development stack: PostgreSQL + Redis + the app (default Spring profile).
+# In AWS the app uses the "aws" profile: RDS Proxy with IAM auth and ElastiCache with TLS.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: todo
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo -d todo"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        APP_VERSION: local
+    environment:
+      DB_HOST: postgres
+      DB_NAME: todo
+      DB_USER: todo
+      DB_PASSWORD: todo
+      REDIS_HOST: redis
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}

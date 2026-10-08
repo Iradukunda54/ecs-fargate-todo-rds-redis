@@ -1,0 +1,41 @@
+name: Infra - validate templates
+
+# Infrastructure is deployed by CloudFormation Git sync (infra/deployments/*.yaml).
+# This workflow lints the templates and checks the deployment files on every change.
+on:
+  push:
+    branches: [main]
+    paths: ["infra/**", ".github/workflows/infra-validate.yml"]
+  pull_request:
+    paths: ["infra/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install cfn-lint pyyaml
+      - name: cfn-lint
+        run: cfn-lint infra/templates/*.yaml
+      - name: Deployment files reference existing templates and parameters
+        run: |
+          python - <<'PY'
+          import sys, yaml
+          from cfnlint.decode import decode
+          ok = True
+          for name in ("foundation", "service"):
+              dep = yaml.safe_load(open(f"infra/deployments/{name}.yaml"))
+              tpl, _ = decode(dep["template-file-path"])
+              unknown = set(dep.get("parameters", {})) - set(tpl.get("Parameters", {}))
+              if unknown:
+                  ok = False
+                  print(f"{name}: unknown parameters {sorted(unknown)}")
+              print(f"{name}: OK -> {dep['template-file-path']}")
+          sys.exit(0 if ok else 1)
+          PY

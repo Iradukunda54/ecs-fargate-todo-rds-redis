@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">To-Do</title>
+  <style>
+    :root { --bg:#f4f6f8; --card:#fff; --text:#1f2933; --muted:#616e7c; --border:#d9e2ec;
+            --primary:#2563eb; --danger:#c53030; --done:#16a34a; --cache:#7c3aed; --db:#d97706; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); }
+    header { display:flex; justify-content:space-between; align-items:center; padding:12px 24px; background:var(--card); border-bottom:1px solid var(--border); }
+    header h1 { margin:0; font-size:1.25rem; }
+    main { max-width:900px; margin:0 auto; padding:24px 16px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:16px; }
+    label { display:grid; gap:4px; font-size:.875rem; color:var(--muted); margin-bottom:10px; }
+    input[type=text], textarea { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font:inherit; color:var(--text); width:100%; }
+    textarea { min-height:60px; }
+    button, .button { font:inherit; cursor:pointer; border-radius:6px; padding:7px 14px; border:1px solid var(--border); background:var(--bg); color:var(--text); text-decoration:none; display:inline-block; }
+    .primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .danger { color:var(--danger); }
+    .error { color:var(--danger); font-size:.8rem; }
+    .flash { background:#e7f6ec; color:#14532d; padding:10px 14px; border-radius:6px; margin-bottom:16px; }
+    .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:.8rem; font-weight:600; color:#fff; }
+    .badge.cache { background:var(--cache); } .badge.db { background:var(--db); }
+    .source { display:flex; gap:10px; align-items:center; font-size:.85rem; color:var(--muted); margin-bottom:12px; }
+    ul.tasks { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+    .task { display:flex; justify-content:space-between; gap:12px; align-items:center; border:1px solid var(--border); border-left:4px solid var(--db); border-radius:6px; padding:10px 12px; background:var(--card); }
+    .task.done { border-left-color:var(--done); }
+    .task.done .title { text-decoration:line-through; color:var(--muted); }
+    .title { font-weight:600; } .desc { font-size:.85rem; color:var(--muted); margin-top:2px; }
+    .actions { display:flex; gap:6px; flex-shrink:0; } .actions form { margin:0; }
+    .actions button, .actions .button { padding:4px 10px; font-size:.8rem; }
+    footer { max-width:900px; margin:0 auto; padding:0 16px 24px; font-size:.75rem; color:var(--muted); }
+    footer code { background:#e4e7eb; padding:1px 5px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <div th:fragment="source(read)" class="source">
+    <span th:if="${read.fromCache()}" class="badge cache">Served from Redis cache</span>
+    <span th:unless="${read.fromCache()}" class="badge db">Read from PostgreSQL (RDS Proxy)</span>
+    <span th:text="|read took ${read.elapsedMillis()} ms|">read took 1 ms</span>
+  </div>
+
+  <footer th:fragment="footer">
+    Version <code th:text="${runtime.version}">dev</code> ·
+    task <code th:text="${runtime.hostname}">local</code> ·
+    database <code th:text="${runtime.databaseHost}">localhost</code> ·
+    cache <code th:text="${runtime.cacheHost}">localhost</code>
+  </footer>
+</body>
+</html>

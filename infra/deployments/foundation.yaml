@@ -1,0 +1,14 @@
+# CloudFormation Git sync deployment file for the "todo-ecs-foundation" stack.
+template-file-path: infra/templates/foundation.yaml
+parameters:
+  DbInstanceClass: db.t3.micro
+  DbMultiAZ: "false"
+  CacheReplicas: "0"
+  EcrRepositoryName: todo-app
+  GitHubOidcSubject: "repo:Iradukunda54@267279209/ecs-fargate-todo-rds-redis@1405694053:ref:refs/heads/main"
+tags:
+  Project: todo-ecs
+  Environment: dev
+  Owner: Iradukunda54
+  ManagedBy: cloudformation-git-sync
+  Stack: foundation

@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  One-time bootstrap: the IAM role that CloudFormation Git sync assumes to deploy the
+  todo-ecs-foundation and todo-ecs-service stacks from this repository. This is the only
+  stack deployed by hand (Git sync needs this role before it can sync anything).
+
+Parameters:
+  ConnectionArn:
+    Type: String
+    Description: ARN of the CodeConnections (GitHub) connection used by Git sync.
+  StackNamePrefix:
+    Type: String
+    Default: todo-ecs
+    Description: Prefix of the stacks (and their IAM roles) this role may manage.
+
+Resources:
+  GitSyncRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${StackNamePrefix}-gitsync-role"
+      Description: Assumed by CloudFormation Git sync to deploy the To-Do ECS stacks
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.sync.codeconnections.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Ref ConnectionArn
+      Policies:
+        # Permissions required by Git sync itself (from the CloudFormation documentation).
+        - PolicyName: git-sync
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStacks
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:GetTemplate
+                  - cloudformation:ListChangeSets
+                  - cloudformation:ListStacks
+                  - cloudformation:ValidateTemplate
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - events:PutRule
+                  - events:PutTargets
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    events:ManagedBy: cloudformation.sync.codeconnections.amazonaws.com
+              - Effect: Allow
+                Action: events:DescribeRule
+                Resource: "*"
+        # Permissions CloudFormation needs to create the resources in the two stacks.
+        - PolicyName: deploy-stack-resources
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ServicesUsedByTheStacks
+                Effect: Allow
+                Action:
+                  - ec2:*
+                  - elasticloadbalancing:*
+                  - ecs:*
+                  - ecr:*
+                  - rds:*
+                  - elasticache:*
+                  - application-autoscaling:*
+                  - codedeploy:*
+                  - codepipeline:*
+                  - codebuild:*
+                  - events:*
+                  - logs:*
+                  - cloudwatch:*
+                  - s3:*
+                  - kms:DescribeKey
+                  - kms:CreateGrant
+                  - kms:ListAliases
+                  - secretsmanager:GetRandomPassword
+                Resource: "*"
+              - Sid: StackSecrets
+                Effect: Allow
+                Action: secretsmanager:*
+                Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${StackNamePrefix}-*"
+              - Sid: StackRolesOnly
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:UpdateRole
+                  - iam:UpdateAssumeRolePolicy
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:PutRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                  - iam:PassRole
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${StackNamePrefix}-foundation-*"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${StackNamePrefix}-service-*"
+              - Sid: ServiceLinkedRoles
+                Effect: Allow
+                Action: iam:CreateServiceLinkedRole
+                Resource: "*"
+                Condition:
+                  StringLike:
+                    iam:AWSServiceName:
+                      - ecs.amazonaws.com
+                      - rds.amazonaws.com
+                      - elasticache.amazonaws.com
+                      - elasticloadbalancing.amazonaws.com
+                      - ecs.application-autoscaling.amazonaws.com
+              - Sid: ReadOidcProvider
+                Effect: Allow
+                Action: iam:GetOpenIDConnectProvider
+                Resource: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+      Tags:
+        - Key: Project
+          Value: todo-ecs
+        - Key: ManagedBy
+          Value: cloudformation
+
+Outputs:
+  GitSyncRoleArn:
+    Value: !GetAtt GitSyncRole.Arn

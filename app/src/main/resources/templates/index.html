@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('To-Do Tasks')}"></head>
+<body>
+<header><h1>To-Do Tasks</h1></header>
+<main>
+  <div class="flash" th:if="${message}" th:text="${message}"></div>
+
+  <form class="card" th:action="@{/tasks}" th:object="${form}" method="post">
+    <label>Title
+      <input type="text" th:field="*{title}" maxlength="200" required>
+      <span class="error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></span>
+    </label>
+    <label>Description (optional)
+      <textarea th:field="*{description}" maxlength="1000"></textarea>
+      <span class="error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></span>
+    </label>
+    <button type="submit" class="primary">Add task</button>
+  </form>
+
+  <section class="card">
+    <div th:replace="~{fragments :: source(${read})}"></div>
+    <p th:if="${#lists.isEmpty(tasks)}">No tasks yet. Add one above.</p>
+    <ul class="tasks">
+      <li th:each="task : ${tasks}" class="task" th:classappend="${task.completed()} ? 'done'">
+        <div>
+          <div class="title" th:text="${task.title()}">Task</div>
+          <div class="desc" th:if="${task.description()}" th:text="${task.description()}"></div>
+        </div>
+        <div class="actions">
+          <form th:action="@{/tasks/{id}/toggle(id=${task.id()})}" method="post">
+            <button type="submit" th:text="${task.completed()} ? 'Reopen' : 'Complete'">Complete</button>
+          </form>
+          <a class="button" th:href="@{/tasks/{id}/edit(id=${task.id()})}">Edit</a>
+          <form th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post"
+                onsubmit="return confirm('Delete this task?')">
+            <button type="submit" class="danger">Delete</button>
+          </form>
+        </div>
+      </li>
+    </ul>
+  </section>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

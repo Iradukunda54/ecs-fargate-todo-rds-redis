@@ -1,0 +1,9 @@
+# Java / Maven
+app/target/
+*.class
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
