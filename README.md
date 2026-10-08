@@ -1,5 +1,7 @@
 # To-Do App on ECS Fargate with RDS + RDS Proxy + ElastiCache (Redis)
 
+**Live application (ALB endpoint):** http://todo-e-LoadB-YquEy56WAeSL-1254714682.eu-west-1.elb.amazonaws.com
+
 A containerised Java (Spring Boot) To-Do web application on **Amazon ECS Fargate**, inside a custom multi-AZ VPC:
 - **Writes** go to **Amazon RDS for PostgreSQL** through **RDS Proxy**. The app authenticates to the proxy with IAM, so it holds no database password.
 - **Reads** are accelerated by **Amazon ElastiCache for Redis**.
@@ -223,6 +225,23 @@ curl -si $URL/api/tasks | grep X-Data-Source      # DATABASE on the first read, 
 | Auto scaling 1–4 | ECS → service → *Service auto scaling* (min 1, max 4, CPU 60 %) |
 | Blue/green deployment | Change something in `app/` and push. Then watch: GitHub Actions → ECR (new `latest`) → CodePipeline run → CodeDeploy deployment (blue/green) → new version in the page footer |
 | Git sync | CloudFormation → stack → *Git sync* tab |
+
+## Deployment evidence
+
+Results of deploying to eu-west-1 from this repository:
+
+| Requirement | Result |
+|---|---|
+| All resources via CloudFormation Git sync | Stacks `todo-ecs-foundation` and `todo-ecs-service` were synced from `infra/deployments/*.yaml` (CloudFormation → stack → *Git sync*: `SUCCEEDED`) |
+| GitHub Actions builds the image and pushes it to ECR with OIDC | Workflow *App - build and push image* pushed `todo-app:<sha>` + `:latest` using `GitHubEcrPushRole` (OIDC, no stored keys) |
+| Application reachable through the ALB | The ALB endpoint above serves the UI; `/actuator/health/liveness` → `{"status":"UP"}` |
+| ECS tasks pass ALB health checks | The active target group reports `healthy` |
+| ECS logs in CloudWatch Logs | `/ecs/todo-ecs-service/todo-app`. Flyway logs `Database: jdbc:postgresql://todo-ecs-foundation-proxy.proxy-…` and `Successfully applied 1 migration`, so writes go through RDS Proxy with IAM auth |
+| Reads accelerated by Redis | The page badge and the `X-Data-Source` header: `DATABASE` on a miss, then `REDIS_CACHE` |
+| Auto scaling 1–4 on CPU | Scalable target min 1 / max 4 (desired 1), `TargetTrackingScaling` on `ECSServiceAverageCPUUtilization` = 60 |
+| EventBridge detects the image push and triggers the pipeline | Pushing commit `a7d3f1a` (header change) started pipeline `todo-ecs-service-Pipeline-…` with trigger type `CloudWatchEvent` (rule `todo-ecs-service-EcrPushRule-…`) |
+| Blue/green deployment works | CodeDeploy deployment type `BLUE_GREEN`: the green task set became healthy, the ALB listener moved to the green target group, the live footer changed from version `854803f` to `a7d3f1a`, and the blue tasks were terminated after 5 minutes |
+| Tagging | Each stack's resources carry `Project=todo-ecs`, `Environment=dev`, `Owner=Iradukunda54`, `ManagedBy=cloudformation-git-sync`, `Stack=<name>` |
 
 ## Cost and teardown
 
