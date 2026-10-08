@@ -1,4 +1,5 @@
 # CloudFormation Git sync deployment file for the "todo-ecs-foundation" stack.
+# Synced by CloudFormation Git sync on every change to this file or the template.
 template-file-path: infra/templates/foundation.yaml
 parameters:
   DbInstanceClass: db.t3.micro
